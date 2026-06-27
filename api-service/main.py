@@ -30,6 +30,7 @@ async def _create_first_admin() -> None:
             email=settings.ADMIN_EMAIL,
             hashed_password=hash_password(settings.ADMIN_PASSWORD),
             role=Role.admin,
+            is_verified=True,
         )
         db.add(admin_user)
         await db.commit()
