@@ -1,0 +1,54 @@
+{
+  "model_pm2": {
+    "mae": 60036.656354580045,
+    "mape": 29.642745064860094
+  },
+  "model_price": {
+    "mae": 5272077.947680146,
+    "rmse": 17914192.700338405,
+    "mape": 29.642745064860094
+  },
+  "baseline": {
+    "mae": 134476.19304019416,
+    "rmse": 608489.7423450259,
+    "mape": 565.8270642654934
+  },
+  "best_iteration": 1999,
+  "features": [
+    "total_area",
+    "floor",
+    "floors",
+    "distance",
+    "lat",
+    "lon",
+    "floor_ratio",
+    "month",
+    "quarter",
+    "rooms_code",
+    "remont_code",
+    "hometype_code",
+    "deal_type_code",
+    "category",
+    "property_kind",
+    "region_id",
+    "bucket",
+    "okrug",
+    "new_building",
+    "is_first_floor",
+    "is_top_floor"
+  ],
+  "cat_features": [
+    "rooms_code",
+    "remont_code",
+    "hometype_code",
+    "deal_type_code",
+    "category",
+    "property_kind",
+    "region_id",
+    "bucket",
+    "okrug",
+    "new_building",
+    "is_first_floor",
+    "is_top_floor"
+  ]
+}
