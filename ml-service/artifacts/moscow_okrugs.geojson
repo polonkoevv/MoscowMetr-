@@ -5,7 +5,7 @@
       "type": "Feature",
       "properties": {
         "name": "Северный административный округ",
-        "short_name": "САО"
+        "short_name": "Северный административный округ"
       },
       "geometry": {
         "type": "Polygon",
@@ -2379,7 +2379,7 @@
       "type": "Feature",
       "properties": {
         "name": "Западный административный округ",
-        "short_name": "ЗАО"
+        "short_name": "Западный административный округ"
       },
       "geometry": {
         "type": "Polygon",
@@ -2749,7 +2749,7 @@
       "type": "Feature",
       "properties": {
         "name": "Северо-Западный административный округ",
-        "short_name": "СЗАО"
+        "short_name": "Северо-Западный административный округ"
       },
       "geometry": {
         "type": "Polygon",
@@ -14399,7 +14399,7 @@
       "type": "Feature",
       "properties": {
         "name": "Северо-Восточный административный округ",
-        "short_name": "СВАО"
+        "short_name": "Северо-Восточный административный округ"
       },
       "geometry": {
         "type": "Polygon",
@@ -17817,7 +17817,7 @@
       "type": "Feature",
       "properties": {
         "name": "Юго-Восточный административный округ",
-        "short_name": "ЮВАО"
+        "short_name": "Юго-Восточный административный округ"
       },
       "geometry": {
         "type": "Polygon",
@@ -20399,7 +20399,7 @@
       "type": "Feature",
       "properties": {
         "name": "Южный административный округ",
-        "short_name": "ЮАО"
+        "short_name": "Южный административный округ"
       },
       "geometry": {
         "type": "Polygon",
@@ -24385,7 +24385,7 @@
       "type": "Feature",
       "properties": {
         "name": "Юго-Западный административный округ",
-        "short_name": "ЮЗАО"
+        "short_name": "Юго-Западный административный округ"
       },
       "geometry": {
         "type": "Polygon",
@@ -32183,7 +32183,7 @@
       "type": "Feature",
       "properties": {
         "name": "Восточный административный округ",
-        "short_name": "ВАО"
+        "short_name": "Восточный административный округ"
       },
       "geometry": {
         "type": "Polygon",
@@ -35189,7 +35189,7 @@
       "type": "Feature",
       "properties": {
         "name": "Центральный административный округ",
-        "short_name": "ЦАО"
+        "short_name": "Центральный административный округ"
       },
       "geometry": {
         "type": "Polygon",
