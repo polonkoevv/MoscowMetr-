@@ -1,0 +1,89 @@
+name: Deploy ReVal
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    name: Deploy to server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Write .env to server & deploy
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          # Postgres
+          POSTGRES_USER:     ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          PGADMIN_EMAIL:     ${{ secrets.PGADMIN_EMAIL }}
+          PGADMIN_PASSWORD:  ${{ secrets.PGADMIN_PASSWORD }}
+          # App
+          SECRET_KEY:        ${{ secrets.SECRET_KEY }}
+          ADMIN_EMAIL:       ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD:    ${{ secrets.ADMIN_PASSWORD }}
+          # SMTP
+          SMTP_HOST:         ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:         ${{ secrets.SMTP_PORT }}
+          SMTP_USER:         ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:     ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM:         ${{ secrets.SMTP_FROM }}
+          FRONTEND_URL:      ${{ secrets.FRONTEND_URL }}
+          # Repo
+          REPO_URL:          ${{ secrets.REPO_URL }}
+          DEPLOY_PATH:       ${{ secrets.DEPLOY_PATH }}
+        with:
+          host:     ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key:      ${{ secrets.SSH_PRIVATE_KEY }}
+          port:     ${{ secrets.SSH_PORT || 22 }}
+          envs: >
+            POSTGRES_USER, POSTGRES_PASSWORD, PGADMIN_EMAIL, PGADMIN_PASSWORD,
+            SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD,
+            SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, FRONTEND_URL,
+            REPO_URL, DEPLOY_PATH
+          script: |
+            set -e
+
+            # ── 1. Первый деплой: клонируем репо ──────────────────
+            if [ ! -d "$DEPLOY_PATH/.git" ]; then
+              echo "→ First deploy: cloning repo..."
+              git clone "$REPO_URL" "$DEPLOY_PATH"
+            fi
+
+            cd "$DEPLOY_PATH"
+
+            # ── 2. Обновляем код ───────────────────────────────────
+            echo "→ Pulling latest code..."
+            git pull origin master
+
+            # ── 3. Генерируем .env из секретов ────────────────────
+            echo "→ Writing .env..."
+            cat > .env <<EOF
+            POSTGRES_USER=$POSTGRES_USER
+            POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+            PGADMIN_EMAIL=$PGADMIN_EMAIL
+            PGADMIN_PASSWORD=$PGADMIN_PASSWORD
+            SECRET_KEY=$SECRET_KEY
+            ADMIN_EMAIL=$ADMIN_EMAIL
+            ADMIN_PASSWORD=$ADMIN_PASSWORD
+            SMTP_HOST=$SMTP_HOST
+            SMTP_PORT=$SMTP_PORT
+            SMTP_USER=$SMTP_USER
+            SMTP_PASSWORD=$SMTP_PASSWORD
+            SMTP_FROM=$SMTP_FROM
+            FRONTEND_URL=$FRONTEND_URL
+            EOF
+
+            # ── 4. Пересобираем контейнеры ────────────────────────
+            echo "→ Rebuilding containers..."
+            docker compose up --build -d --remove-orphans
+
+            echo "→ Removing unused images..."
+            docker image prune -f
+
+            echo "→ Status:"
+            docker compose ps
