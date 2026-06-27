@@ -42,29 +42,35 @@ services:
       - "8001:8001"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health')\""]
       interval: 15s
-      timeout: 5s
-      retries: 3
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
-  # ─── API Service (будет добавлен позже) ─────────────────────
-  # api-service:
-  #   build:
-  #     context: ./api-service
-  #     dockerfile: Dockerfile
-  #   container_name: du_portal_api
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/du_portal_diploma
-  #     ML_SERVICE_URL: http://ml-service:8001
-  #     SECRET_KEY: ${SECRET_KEY}
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     ml-service:
-  #       condition: service_healthy
-  #   restart: unless-stopped
+  # ─── API Service ────────────────────────────────────────────
+  api-service:
+    build:
+      context: .
+      dockerfile: api-service/Dockerfile
+    container_name: du_portal_api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/du_portal_diploma
+      ML_SERVICE_URL: http://ml-service:8001
+      SECRET_KEY: ${SECRET_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    volumes:
+      - api_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  api_logs:

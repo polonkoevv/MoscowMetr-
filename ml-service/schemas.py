@@ -59,3 +59,5 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     best_iteration: Optional[int] = None
+
+    model_config = {"protected_namespaces": ()}
