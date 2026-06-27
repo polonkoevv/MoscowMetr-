@@ -1,11 +1,13 @@
 import hashlib
 import json
+from datetime import datetime
 
 import httpx
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator, model_validator
+from sqlalchemy import select, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
@@ -154,3 +156,52 @@ async def predict(
     await db.commit()
 
     return result
+
+
+class HistoryItem(BaseModel):
+    id:           int
+    request_data: dict
+    response_data: dict
+    created_at:   datetime
+
+
+class HistoryResponse(BaseModel):
+    total: int
+    items: list[HistoryItem]
+
+
+@router.get("/history", response_model=HistoryResponse)
+async def get_history(
+    limit:  int = Query(20, ge=1, le=100, description="Кол-во записей"),
+    offset: int = Query(0,  ge=0,         description="Смещение"),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """История предсказаний текущего пользователя, от новых к старым."""
+    result = await db.execute(
+        select(PredictionLog)
+        .where(PredictionLog.user_id == user.id)
+        .order_by(desc(PredictionLog.created_at))
+        .offset(offset)
+        .limit(limit)
+    )
+    logs = result.scalars().all()
+
+    # Общее кол-во записей пользователя
+    count_result = await db.execute(
+        select(func.count()).where(PredictionLog.user_id == user.id).select_from(PredictionLog)
+    )
+    total = count_result.scalar_one()
+
+    return HistoryResponse(
+        total=total,
+        items=[
+            HistoryItem(
+                id=log.id,
+                request_data=log.request_data,
+                response_data=log.response_data,
+                created_at=log.created_at,
+            )
+            for log in logs
+        ],
+    )
