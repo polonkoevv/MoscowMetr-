@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL")
     @classmethod
     def database_url_valid(cls, v: str) -> str:
-        if not v.startswith("postgresql+asyncpg://"):
+        if not v.startswith(("postgresql+asyncpg://", "sqlite+aiosqlite://")):
             raise ValueError("DATABASE_URL должен начинаться с 'postgresql+asyncpg://'")
         return v
 
