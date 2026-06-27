@@ -2,7 +2,7 @@ name: Deploy ReVal
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -90,7 +90,7 @@ jobs:
 
             # ── 2. Обновляем код ───────────────────────────────────
             echo "→ Pulling latest code..."
-            git pull origin master
+            git pull origin main
 
             # ── 3. Генерируем .env из секретов ────────────────────
             echo "→ Writing .env..."
