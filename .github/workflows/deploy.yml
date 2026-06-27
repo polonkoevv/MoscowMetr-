@@ -29,7 +29,7 @@ jobs:
 
       - name: Install dev dependencies
         working-directory: api-service
-        run: uv pip install --system pytest pytest-asyncio httpx aiosqlite "fakeredis[aioredis]"
+        run: uv pip install --system pytest pytest-asyncio pytest-cov httpx aiosqlite "fakeredis[aioredis]"
 
       - name: Run tests
         working-directory: api-service
