@@ -23,8 +23,8 @@ from app.routers import admin, auth, listings, predict, stats
 async def _create_first_admin() -> None:
     """Создаёт первого admin-пользователя если ни одного нет."""
     async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.role == Role.admin))
-        if result.scalar_one_or_none() is not None:
+        result = await db.execute(select(User).where(User.role == Role.admin).limit(1))
+        if result.scalars().first() is not None:
             return
         admin_user = User(
             email=settings.ADMIN_EMAIL,
