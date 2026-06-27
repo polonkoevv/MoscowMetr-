@@ -1,4 +1,8 @@
+import hashlib
+import json
+
 import httpx
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -7,6 +11,7 @@ from typing import Optional
 
 from app.auth.dependencies import get_current_user
 from app.config import settings
+from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.prediction_log import PredictionLog
 from app.models.user import User
@@ -93,12 +98,28 @@ class PredictResponse(BaseModel):
     okrug:        str
 
 
+def _predict_cache_key(body: PredictRequest) -> str:
+    """SHA256 от отсортированного JSON входных параметров."""
+    payload = json.dumps(body.model_dump(), sort_keys=True, default=str)
+    digest = hashlib.sha256(payload.encode()).hexdigest()
+    return f"predict:{digest}"
+
+
 @router.post("", response_model=PredictResponse)
 async def predict(
     body: PredictRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
 ):
+    cache_key = _predict_cache_key(body)
+
+    # Проверяем кэш
+    cached = await redis.get(cache_key)
+    if cached:
+        logger.info(f"Предсказание из кэша для user_id={user.id} | key={cache_key[:16]}…")
+        return json.loads(cached.decode())
+
     logger.debug(f"Запрос предсказания от user_id={user.id}: area={body.total_area}, floor={body.floor}/{body.floors}")
 
     # Вызов ML Service
@@ -114,6 +135,10 @@ async def predict(
             raise HTTPException(status_code=502, detail=f"ML Service недоступен: {e}")
 
     result = resp.json()
+
+    # Кэшируем результат
+    await redis.set(cache_key, json.dumps(result).encode(), ex=settings.PREDICT_CACHE_TTL)
+
     logger.info(
         f"Предсказание для user_id={user.id}: "
         f"price={result.get('price'):,} руб., okrug={result.get('okrug', '—')}"

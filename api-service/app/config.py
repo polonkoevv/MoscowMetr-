@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     ADMIN_EMAIL:    str = "admin@reval.ru"
     ADMIN_PASSWORD: str = "changeme"
 
+    # Redis
+    REDIS_URL: str = "redis://redis:6379/0"
+    PREDICT_CACHE_TTL: int = 60 * 60        # 1 час
+    STATS_CACHE_TTL:   int = 60 * 30        # 30 минут
+
     # CORS — список разрешённых источников через запятую
     # Пример: "http://localhost:3000,https://reval.ru"
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8501"

@@ -1,5 +1,6 @@
-from datetime import datetime, timezone
+from datetime import timedelta
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from loguru import logger
 from pydantic import BaseModel, EmailStr, field_validator
@@ -9,11 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.auth.jwt import create_access_token, create_refresh_token
 from app.auth.passwords import hash_password, verify_password
+from app.config import settings
+from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.refresh_token import RefreshToken
 from app.models.user import Role, User
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+_REFRESH_PREFIX = "refresh:"
+_REFRESH_TTL = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
 
 
 class RegisterRequest(BaseModel):
@@ -73,7 +78,12 @@ async def register(body: RegisterRequest, request: Request, db: AsyncSession = D
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+async def login(
+    body: LoginRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
+):
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
 
@@ -85,33 +95,31 @@ async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends
         raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
 
     access_token = create_access_token(subject=user.id, role=user.role.value)
-    refresh_token_value, expires_at = create_refresh_token()
+    refresh_token_value, _ = create_refresh_token()
 
-    db.add(RefreshToken(token=refresh_token_value, user_id=user.id, expires_at=expires_at))
-    await db.commit()
+    # Сохраняем в Redis: ключ = "refresh:{token}", значение = user_id, TTL = 30 дней
+    await redis.set(f"{_REFRESH_PREFIX}{refresh_token_value}", str(user.id).encode(), ex=_REFRESH_TTL)
 
     logger.info(f"Успешный вход: {user.email} (id={user.id}, role={user.role.value}) | IP: {request.client.host}")
     return TokenResponse(access_token=access_token, refresh_token=refresh_token_value)
 
 
 @router.post("/refresh", response_model=AccessTokenResponse)
-async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token == body.refresh_token)
-    )
-    stored = result.scalar_one_or_none()
+async def refresh(
+    body: RefreshRequest,
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
+):
+    raw = await redis.get(f"{_REFRESH_PREFIX}{body.refresh_token}")
+    if raw is None:
+        raise HTTPException(status_code=401, detail="Refresh токен не найден или истёк")
 
-    if not stored:
-        raise HTTPException(status_code=401, detail="Refresh токен не найден")
-    if stored.expires_at < datetime.now(timezone.utc):
-        await db.delete(stored)
-        await db.commit()
-        raise HTTPException(status_code=401, detail="Refresh токен истёк")
-
-    result = await db.execute(select(User).where(User.id == stored.user_id))
+    user_id = int(raw.decode())
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
     if not user or not user.is_active:
+        await redis.delete(f"{_REFRESH_PREFIX}{body.refresh_token}")
         raise HTTPException(status_code=401, detail="Пользователь не найден или заблокирован")
 
     access_token = create_access_token(subject=user.id, role=user.role.value)
@@ -120,15 +128,13 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token == body.refresh_token)
-    )
-    stored = result.scalar_one_or_none()
-    if stored:
-        await db.delete(stored)
-        await db.commit()
-        logger.info(f"Logout: refresh токен отозван для user_id={stored.user_id}")
+async def logout(
+    body: RefreshRequest,
+    redis: aioredis.Redis = Depends(get_redis),
+):
+    deleted = await redis.delete(f"{_REFRESH_PREFIX}{body.refresh_token}")
+    if deleted:
+        logger.info("Logout: refresh токен отозван")
 
 
 @router.get("/me", response_model=UserResponse)

@@ -13,6 +13,7 @@ from sqlalchemy import select
 
 from app.auth.passwords import hash_password
 from app.config import settings
+from app.db.redis import close_redis, init_redis
 from app.db.session import AsyncSessionLocal
 from app.logger import setup_logging
 from app.models.user import Role, User
@@ -39,9 +40,11 @@ async def _create_first_admin() -> None:
 async def lifespan(app: FastAPI):
     setup_logging()
     logger.info("ReVal API Service запускается...")
+    await init_redis()
     await _create_first_admin()
     logger.info("ReVal API Service готов к работе")
     yield
+    await close_redis()
     logger.info("ReVal API Service остановлен")
 
 
