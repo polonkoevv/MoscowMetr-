@@ -19,7 +19,8 @@ class User(Base):
     email:         Mapped[str]      = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str]   = mapped_column(String(255), nullable=False)
     role:          Mapped[Role]     = mapped_column(Enum(Role), default=Role.user, nullable=False)
-    is_active:     Mapped[bool]     = mapped_column(Boolean, default=True, nullable=False)
+    is_active:     Mapped[bool]     = mapped_column(Boolean, default=True,  nullable=False)
+    is_verified:   Mapped[bool]     = mapped_column(Boolean, default=False, nullable=False)
     created_at:    Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

@@ -21,6 +21,7 @@ dependencies = [
     "python-multipart==0.0.12",
     "loguru==0.7.2",
     "redis[asyncio]==5.2.1",
+    "aiosmtplib==3.0.1",
 ]
 
 [tool.uv]

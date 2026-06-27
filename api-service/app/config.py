@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     ADMIN_EMAIL:    str = "admin@reval.ru"
     ADMIN_PASSWORD: str = "changeme"
 
+    # SMTP
+    SMTP_HOST:     str = "smtp.gmail.com"
+    SMTP_PORT:     int = 587
+    SMTP_USER:     str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM:     str = "noreply@reval.ru"
+    FRONTEND_URL:  str = "http://localhost:8000"
+
     # Redis
     REDIS_URL: str = "redis://redis:6379/0"
     PREDICT_CACHE_TTL: int = 60 * 60        # 1 час

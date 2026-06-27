@@ -73,6 +73,12 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      FRONTEND_URL: ${FRONTEND_URL}
     volumes:
       - api_logs:/app/logs
     depends_on:
@@ -82,6 +88,21 @@ services:
         condition: service_healthy
       ml-service:
         condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Frontend ───────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: du_portal_frontend
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: http://api-service:8000
+    depends_on:
+      api-service:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
