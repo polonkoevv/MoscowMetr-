@@ -3,6 +3,7 @@ name: Deploy ReVal
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   # ── 1. Тесты ──────────────────────────────────────────────────
